@@ -78,10 +78,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Check for stored token on app load
     const token = localStorage.getItem('token');
     if (token) {
-      // Don't wait for the result in the useEffect
       getCurrentUser().catch(error => {
         console.error('Error in initial auth check:', error);
-        // Reset loading state in case of error to prevent endless loading
         setIsLoading(false);
       });
     }
@@ -181,10 +179,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(data.error || 'Registration failed');
       }
       
-      // Save token to local storage
       localStorage.setItem('token', data.token);
-      
-      // Set user data and auth state
       setUser(data.user);
       setUserId(data.user.id);
       setIsLoggedIn(true);
@@ -216,10 +211,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(data.error || 'Login failed');
       }
       
-      // Save token to local storage
       localStorage.setItem('token', data.token);
-      
-      // Set user data and auth state
       setUser(data.user);
       setUserId(data.user.id);
       setIsLoggedIn(true);
@@ -255,14 +247,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(data.error || 'Failed to get user data');
       }
       
-      // Set user data and auth state
       setUser(data.user);
       setUserId(data.user.id);
       setIsLoggedIn(true);
       
     } catch (error) {
       console.error('Error fetching current user:', error);
-      // Clear invalid token
       logout();
     } finally {
       setIsLoading(false);
@@ -296,7 +286,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         throw new Error(responseData.error || 'Failed to update profile');
       }
       
-      // Update user data
       setUser(responseData.user);
       
     } catch (error) {
@@ -340,41 +329,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const logout = () => {
-    // Clear token from localStorage
-    localStorage.removeItem('token');
+    };
     
-    // Reset state
+    const logout = () => {
+    localStorage.removeItem('token');
     setUser(null);
     setUserId(null);
     setIsLoggedIn(false);
-  };
-
-  const navigateTo = (path: string) => {
+    };
+    
+    const navigateTo = (path: string) => {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
-    
-    // If navigating to a studio detail page, update selected studio
     const match = path.match(/\/studios\/(.+)/);
     if (match && match[1]) {
-      const studioId = match[1];
-      selectStudio(studioId);
+      const studio = getStudioById(match[1]);
+      if (studio) {
+        setSelectedStudio(studio);
+      }
     } else {
-      // Clear selected studio when not on a studio page
       setSelectedStudio(null);
     }
+    };
     
-    // Dispatch a popstate event to notify the app about the navigation
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
-
-  const clearAuthError = () => {
+    const clearAuthError = () => {
     setAuthError(null);
-  };
-
-  const value = {
+    };
+    
+    return (
+    <AppContext.Provider
+    value={{
     studios,
     filteredStudios,
     selectedStudio,
@@ -386,7 +370,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     currentPath,
     authError,
     isLoading,
-    
     searchStudios,
     selectStudio,
     addReview,
@@ -398,16 +381,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateUserProfile,
     changePassword,
     getCurrentUser,
-    clearAuthError
-  };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
-  return context;
-};
+    clearAuthError,
+    }}
+    >
+    {children}
+    </AppContext.Provider>
+    );
+    };
+    
+    export const useAppContext = (): AppContextType => {
+    const context = useContext(AppContext);
+    if (!context) {
+    throw new Error('useAppContext must be used within an AppProvider');
+    }
+    return context;
+    };
