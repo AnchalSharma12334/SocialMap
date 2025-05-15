@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Studio, StudioType, Review, Booking } from '../types';
+import { Studio, StudioType, Review, Booking, User } from '../types';
 import { studios, getStudioById, getStudiosByFilter } from '../data/studios';
+
+// API URL from environment or default to localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface AppContextType {
   studios: Studio[];
@@ -9,16 +12,24 @@ interface AppContextType {
   reviews: Review[];
   bookings: Booking[];
   userId: string | null;
+  user: User | null;
   isLoggedIn: boolean;
   currentPath: string;
+  authError: string | null;
+  isLoading: boolean;
   
   searchStudios: (query: string, filters: any) => void;
   selectStudio: (id: string) => void;
   addReview: (review: Omit<Review, 'id' | 'date'>) => void;
   createBooking: (booking: Omit<Booking, 'id'>) => void;
-  login: (email: string, password: string) => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   navigateTo: (path: string) => void;
+  updateUserProfile: (data: { name?: string, email?: string }) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  getCurrentUser: () => Promise<void>;
+  clearAuthError: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -57,10 +68,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   ]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Check for stored token on app load
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Don't wait for the result in the useEffect
+      getCurrentUser().catch(error => {
+        console.error('Error in initial auth check:', error);
+        // Reset loading state in case of error to prevent endless loading
+        setIsLoading(false);
+      });
+    }
+
     const handleLocationChange = () => {
       setCurrentPath(window.location.pathname);
       
@@ -137,13 +162,192 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setBookings([...bookings, newBooking]);
   };
 
-  const login = (email: string, password: string) => {
-    // Simulate login
-    setUserId('user1');
-    setIsLoggedIn(true);
+  const register = async (name: string, email: string, password: string) => {
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+      
+      // Save token to local storage
+      localStorage.setItem('token', data.token);
+      
+      // Set user data and auth state
+      setUser(data.user);
+      setUserId(data.user.id);
+      setIsLoggedIn(true);
+      
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Registration failed');
+      console.error('Registration error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+      
+      // Save token to local storage
+      localStorage.setItem('token', data.token);
+      
+      // Set user data and auth state
+      setUser(data.user);
+      setUserId(data.user.id);
+      setIsLoggedIn(true);
+      
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Login failed');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getCurrentUser = async () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get user data');
+      }
+      
+      // Set user data and auth state
+      setUser(data.user);
+      setUserId(data.user.id);
+      setIsLoggedIn(true);
+      
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      // Clear invalid token
+      logout();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateUserProfile = async (data: { name?: string; email?: string }) => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      setAuthError('You must be logged in to update your profile');
+      return;
+    }
+    
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to update profile');
+      }
+      
+      // Update user data
+      setUser(responseData.user);
+      
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Failed to update profile');
+      console.error('Update profile error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      setAuthError('You must be logged in to change your password');
+      return;
+    }
+    
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to change password');
+      }
+      
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Failed to change password');
+      console.error('Change password error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
+    // Clear token from localStorage
+    localStorage.removeItem('token');
+    
+    // Reset state
+    setUser(null);
     setUserId(null);
     setIsLoggedIn(false);
   };
@@ -166,6 +370,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
+  const clearAuthError = () => {
+    setAuthError(null);
+  };
+
   const value = {
     studios,
     filteredStudios,
@@ -173,16 +381,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     reviews,
     bookings,
     userId,
+    user,
     isLoggedIn,
     currentPath,
+    authError,
+    isLoading,
     
     searchStudios,
     selectStudio,
     addReview,
     createBooking,
     login,
+    register,
     logout,
-    navigateTo
+    navigateTo,
+    updateUserProfile,
+    changePassword,
+    getCurrentUser,
+    clearAuthError
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

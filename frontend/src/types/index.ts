@@ -47,6 +47,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  avatar?: string;
+  role: 'user' | 'admin';
   phone?: string;
   bookings?: Booking[];
   favorites?: string[];

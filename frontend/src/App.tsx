@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -7,6 +7,7 @@ import StudiosPage from './pages/StudiosPage';
 import StudioDetailPage from './pages/StudioDetailPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import ProfilePage from './pages/ProfilePage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 
@@ -25,6 +26,8 @@ const Router: React.FC = () => {
       return <LoginPage />;
     } else if (currentPath === '/signup') {
       return <SignupPage />;
+    } else if (currentPath === '/profile') {
+      return <ProfilePage />;
     } else if (currentPath === '/about') {
       return <AboutPage />;
     } else if (currentPath === '/contact') {

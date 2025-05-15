@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Link } from '../components/Link';
 
@@ -7,20 +7,73 @@ const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const { login, navigateTo } = useApp();
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const { register, navigateTo, authError, isLoading, clearAuthError } = useApp();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  // Clear any auth errors when component mounts or unmounts
+  useEffect(() => {
+    clearAuthError();
+    return () => clearAuthError();
+  }, [clearAuthError]);
+
+  // Validate password as user types
+  const validatePassword = (value: string) => {
+    if (value.length < 6) {
+      return "Password must be at least 6 characters";
+    }
+    
+    if (!/[A-Z]/.test(value)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) {
+      return "Password must contain at least one special character";
+    }
+    
+    return null;
+  };
+
+  // Update password and perform validation
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    if (value) {
+      const error = validatePassword(value);
+      setPasswordError(error);
+    } else {
+      setPasswordError(null);
+    }
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
-      alert("Passwords don't match!");
+    // Clear previous error
+    setPasswordError(null);
+    
+    // Validate password format
+    const passwordValidationError = validatePassword(password);
+    if (passwordValidationError) {
+      setPasswordError(passwordValidationError);
       return;
     }
     
-    // In a real app, this would create a new user account
-    // For now, we'll just log them in
-    login(email, password);
-    navigateTo('/');
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setPasswordError("Passwords don't match");
+      return;
+    }
+    
+    try {
+      // Call the register function from context
+      await register(name, email, password);
+      
+      // Navigate to home on successful registration
+      navigateTo('/');
+    } catch (error) {
+      // Error handling is managed in the context
+      console.error('Registration error:', error);
+    }
   };
   
   return (
@@ -39,6 +92,12 @@ const SignupPage: React.FC = () => {
         
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            {(authError || passwordError) && (
+              <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
+                {passwordError || authError}
+              </div>
+            )}
+            
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
@@ -53,6 +112,7 @@ const SignupPage: React.FC = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    disabled={isLoading}
                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF5A5F] focus:border-[#FF5A5F] sm:text-sm"
                   />
                 </div>
@@ -71,6 +131,7 @@ const SignupPage: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF5A5F] focus:border-[#FF5A5F] sm:text-sm"
                   />
                 </div>
@@ -88,10 +149,15 @@ const SignupPage: React.FC = () => {
                     autoComplete="new-password"
                     required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handlePasswordChange}
+                    disabled={isLoading}
+                    minLength={6}
                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF5A5F] focus:border-[#FF5A5F] sm:text-sm"
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Password must contain at least 6 characters, including an uppercase letter and a special character.
+                </p>
               </div>
               
               <div>
@@ -107,6 +173,7 @@ const SignupPage: React.FC = () => {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF5A5F] focus:border-[#FF5A5F] sm:text-sm"
                   />
                 </div>
@@ -135,9 +202,10 @@ const SignupPage: React.FC = () => {
               <div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#FF5A5F] hover:bg-[#FF4045] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF5A5F]"
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#FF5A5F] hover:bg-[#FF4045] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF5A5F] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign up
+                  {isLoading ? 'Creating account...' : 'Sign up'}
                 </button>
               </div>
             </form>
