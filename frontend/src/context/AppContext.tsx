@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Studio, StudioType, Review, Booking, User } from '../types';
 import { studios, getStudioById, getStudiosByFilter } from '../data/studios';
+import { auth, googleProvider, facebookProvider, twitterProvider } from '../firebase';
+import { signInWithPopup } from 'firebase/auth';
+
 
 // API URL from environment or default to localhost
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -30,6 +33,7 @@ interface AppContextType {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   getCurrentUser: () => Promise<void>;
   clearAuthError: () => void;
+  socialLogin: (provider: typeof googleProvider | typeof facebookProvider | typeof twitterProvider) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -108,6 +112,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, []);
 
+  const socialLogin = async (provider: typeof googleProvider | typeof facebookProvider | typeof twitterProvider) => {
+    setIsLoading(true);
+    setAuthError(null);
+  
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+
+      const token = await firebaseUser.getIdToken();
+  
+      localStorage.setItem('token', token);
+      setUser({
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || '',
+        email: firebaseUser.email || '',
+        profilePicture: firebaseUser.photoURL || '',
+        role: 'user'
+      });
+      setUserId(firebaseUser.uid);
+      setIsLoggedIn(true);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Social login failed');
+      console.error('Social login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const searchStudios = (query: string, filters: {
     type?: StudioType;
     priceMin?: number;
@@ -357,42 +389,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     
     return (
-    <AppContext.Provider
-    value={{
-    studios,
-    filteredStudios,
-    selectedStudio,
-    reviews,
-    bookings,
-    userId,
-    user,
-    isLoggedIn,
-    currentPath,
-    authError,
-    isLoading,
-    searchStudios,
-    selectStudio,
-    addReview,
-    createBooking,
-    login,
-    register,
-    logout,
-    navigateTo,
-    updateUserProfile,
-    changePassword,
-    getCurrentUser,
-    clearAuthError,
-    }}
-    >
-    {children}
-    </AppContext.Provider>
-    );
+      <AppContext.Provider
+        value={{
+          studios,
+          filteredStudios,
+          selectedStudio,
+          reviews,
+          bookings,
+          userId,
+          user,
+          isLoggedIn,
+          currentPath,
+          authError,
+          isLoading,
+          searchStudios,
+          selectStudio,
+          addReview,
+          createBooking,
+          login,
+          register,
+          logout,
+          navigateTo,
+          updateUserProfile,
+          changePassword,
+          getCurrentUser,
+          clearAuthError,
+          socialLogin,
+
+        }}
+      >
+        {children}
+      </AppContext.Provider>
+    );    
     };
     
     export const useApp = (): AppContextType => {
     const context = useContext(AppContext);
     if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider');
+    throw new Error('useApp must be used within an AppProvider');
     }
     return context;
     };

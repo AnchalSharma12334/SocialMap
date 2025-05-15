@@ -52,6 +52,7 @@ export interface User {
   phone?: string;
   bookings?: Booking[];
   favorites?: string[];
+  profilePicture?: string;
 }
 
 export interface Review {
