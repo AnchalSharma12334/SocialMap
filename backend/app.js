@@ -6,7 +6,10 @@ const mongoose = require('mongoose');
 const app = express();
 
 // Middleware
-app.use(cors());                    // Allow cross-origin requests from frontend
+
+
+app.use(cors(corsOptions));                  // Allow cross-origin requests from frontend
+app.options('*', cors(corsOptions));
 app.use(express.json());            // Parse JSON request bodies
 
 // Import your routes
