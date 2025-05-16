@@ -202,8 +202,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // ✅ REQUIRED for cookies/session
         body: JSON.stringify({ name, email, password }),
       });
+      
 
       const data = await response.json();
       
@@ -234,8 +236,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // ✅ REQUIRED for cookies/session
         body: JSON.stringify({ email, password }),
       });
+      
 
       const data = await response.json();
       
