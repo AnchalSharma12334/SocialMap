@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 
 // Load environment variables
 dotenv.config();
@@ -8,15 +8,23 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/socialmap';
 
 // Connect to MongoDB
-export const connectDB = async (): Promise<void> => {
+const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(MONGODB_URI);
+    const conn = await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(
+      `Error connecting to MongoDB: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     process.exit(1);
   }
 };
+
+// Export the function
+module.exports = { connectDB };
 
 // Handle MongoDB connection events
 mongoose.connection.on('error', (err) => {
