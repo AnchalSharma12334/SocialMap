@@ -3,7 +3,7 @@ import { Studio, StudioType, Review, Booking, User } from '../types';
 import { studios, getStudioById, getStudiosByFilter } from '../data/studios';
 
 // API URL from environment or default to localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
 
 interface AppContextType {
   studios: Studio[];
