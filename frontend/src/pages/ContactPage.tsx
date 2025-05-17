@@ -1,18 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import emailjs from '@emailjs/browser';
+import { useApp } from '../context/AppContext';
+
+// Initialize EmailJS
+const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'your_public_key_here';
+const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_contact_form';
+const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_contact_form';
 
 const ContactPage: React.FC = () => {
+  const { showSnackbar } = useApp();
+  const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Initialize EmailJS
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [id]: value
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
+    setIsSubmitting(true);
+    
+    // Prepare template parameters
+    const templateParams = {
+      to_email: 'divyanshugarg1011@gmail.com',
+      from_name: formData.name,
+      from_email: formData.email,
+      subject: formData.subject,
+      message: formData.message
+    };
+    
+    // Send email using EmailJS
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+      .then((response) => {
+        console.log('Email sent successfully:', response);
+        showSnackbar('Your message has been sent successfully!', 'success');
+        
+        // Reset form after successful submission
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+        
+        if (formRef.current) {
+          formRef.current.reset();
+        }
+      })
+      .catch((error) => {
+        console.error('Error sending email:', error);
+        showSnackbar('Failed to send message. Please try again later.', 'error');
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   return (
@@ -67,7 +124,7 @@ const ContactPage: React.FC = () => {
           </div>
           
           <div>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                   Name
@@ -76,7 +133,7 @@ const ContactPage: React.FC = () => {
                   type="text"
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#FF5A5F] focus:border-[#FF5A5F]"
                   required
                 />
@@ -90,7 +147,7 @@ const ContactPage: React.FC = () => {
                   type="email"
                   id="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#FF5A5F] focus:border-[#FF5A5F]"
                   required
                 />
@@ -104,7 +161,7 @@ const ContactPage: React.FC = () => {
                   type="text"
                   id="subject"
                   value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#FF5A5F] focus:border-[#FF5A5F]"
                   required
                 />
@@ -118,7 +175,7 @@ const ContactPage: React.FC = () => {
                   id="message"
                   rows={6}
                   value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#FF5A5F] focus:border-[#FF5A5F]"
                   required
                 ></textarea>
@@ -127,8 +184,9 @@ const ContactPage: React.FC = () => {
               <button
                 type="submit"
                 className="w-full bg-[#FF5A5F] text-white py-3 px-6 rounded-md hover:bg-[#FF4045] transition duration-300"
+                disabled={isSubmitting}
               >
-                Send Message
+                {isSubmitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </div>

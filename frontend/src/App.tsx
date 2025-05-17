@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import Snackbar from './components/Snackbar';
+import Bookings from './pages/Bookings';
 
 const Router: React.FC = () => {
   const { currentPath, snackbar, hideSnackbar } = useApp();
@@ -33,7 +34,9 @@ const Router: React.FC = () => {
       return <AboutPage />;
     } else if (currentPath === '/contact') {
       return <ContactPage />;
-    } else {
+    } else if (currentPath === '/bookings') {
+      return <Bookings />;
+    }else {
       // Default to home page if path is not recognized
       return <HomePage />;
     }
