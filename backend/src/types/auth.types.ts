@@ -8,12 +8,14 @@ export interface AuthRequest extends Request {
 export interface RegisterUser {
   name: string;
   email: string;
-  password: string;
+  password?: string;
+  firebaseId?: string;
 }
 
 export interface LoginUser {
   email: string;
-  password: string;
+  password?: string;
+  firebaseId?: string;
 }
 
 export interface AuthResponse {
@@ -24,5 +26,6 @@ export interface AuthResponse {
     email: string;
     role: string;
     avatar?: string;
+    firebaseId?: string;
   };
 }

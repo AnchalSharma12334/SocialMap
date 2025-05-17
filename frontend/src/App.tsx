@@ -10,9 +10,10 @@ import SignupPage from './pages/SignupPage';
 import ProfilePage from './pages/ProfilePage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
+import Snackbar from './components/Snackbar';
 
 const Router: React.FC = () => {
-  const { currentPath } = useApp();
+  const { currentPath, snackbar, hideSnackbar } = useApp();
   
   // Render the appropriate page based on the current path
   const renderPage = () => {
@@ -45,6 +46,12 @@ const Router: React.FC = () => {
         {renderPage()}
       </main>
       <Footer />
+      <Snackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={hideSnackbar}
+      />
     </div>
   );
 };

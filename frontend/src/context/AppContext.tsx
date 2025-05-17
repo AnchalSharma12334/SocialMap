@@ -1,9 +1,18 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Studio, StudioType, Review, Booking, User } from '../types';
 import { studios, getStudioById, getStudiosByFilter } from '../data/studios';
+import { auth, googleProvider } from '../config/firebase';
+import { signInWithPopup, UserCredential, signOut } from 'firebase/auth';
+import { SnackbarType } from '../components/Snackbar';
 
 // API URL from environment or default to localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
+
+interface SnackbarState {
+  open: boolean;
+  message: string;
+  type: SnackbarType;
+}
 
 interface AppContextType {
   studios: Studio[];
@@ -18,11 +27,17 @@ interface AppContextType {
   authError: string | null;
   isLoading: boolean;
   
+  // Snackbar state
+  snackbar: SnackbarState;
+  showSnackbar: (message: string, type: SnackbarType) => void;
+  hideSnackbar: () => void;
+  
   searchStudios: (query: string, filters: any) => void;
   selectStudio: (id: string) => void;
   addReview: (review: Omit<Review, 'id' | 'date'>) => void;
   createBooking: (booking: Omit<Booking, 'id'>) => void;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   navigateTo: (path: string) => void;
@@ -73,6 +88,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: '', type: 'info' });
 
   useEffect(() => {
     // Check for stored token on app load
@@ -178,6 +194,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const data = await response.json();
       
       if (!response.ok) {
+        // Special handling for duplicate email error
+        if (data.error === "User already registered with this email address") {
+          const errorMessage = "This email is already registered. If you previously signed in with Google, please use Google Sign-In instead.";
+          showSnackbar(data.error, 'error');
+          throw new Error(errorMessage);
+        }
         throw new Error(data.error || 'Registration failed');
       }
       
@@ -189,15 +211,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setUserId(data.user.id);
       setIsLoggedIn(true);
       
+      // Show success message
+      showSnackbar('Registration successful!', 'success');
+      
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Registration failed');
+      if (!(error instanceof Error && error.message.includes("User already registered"))) {
+        showSnackbar(error instanceof Error ? error.message : 'Registration failed', 'error');
+      }
       console.error('Registration error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setAuthError(null);
     
@@ -213,6 +241,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const data = await response.json();
       
       if (!response.ok) {
+        // Special handling for Google-authenticated accounts
+        if (data.error === "Invalid credentials" && data.isGoogleAccount) {
+          const errorMessage = "This email is registered with Google. Please use the 'Sign in with Google' button instead.";
+          showSnackbar(errorMessage, 'error');
+          throw new Error(errorMessage);
+        }
         throw new Error(data.error || 'Login failed');
       }
       
@@ -224,9 +258,95 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setUserId(data.user.id);
       setIsLoggedIn(true);
       
+      // Show success message
+      showSnackbar('Successfully logged in!', 'success');
+      
+      return true; // Login successful
+      
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Login failed');
+      // Only show the snackbar for regular errors
+      if (!(error instanceof Error && error.message.includes("Google"))) {
+        showSnackbar(error instanceof Error ? error.message : 'Login failed', 'error');
+      }
       console.error('Login error:', error);
+      return false; // Login failed
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<boolean> => {
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      // Use Firebase to sign in with Google
+      const result: UserCredential = await signInWithPopup(auth, googleProvider);
+      const { user: firebaseUser } = result;
+      
+      if (!firebaseUser.email) {
+        throw new Error('Google authentication failed: No email provided');
+      }
+      
+      // Get user info from Firebase
+      const userData = {
+        name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+        email: firebaseUser.email,
+        firebaseId: firebaseUser.uid,
+        avatar: firebaseUser.photoURL || '',
+      };
+      
+      console.log('Sending Google auth data to backend:', userData);
+      console.log('Request URL:', `${API_URL}/auth/google`);
+      
+      // Send to backend to create/update user and get JWT
+      const response = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+      
+      if (!response.ok) {
+        console.error('Google auth failed with status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        // Try to parse as JSON, but handle case where it's not JSON
+        let data;
+        try {
+          data = JSON.parse(errorText);
+        } catch (e) {
+          throw new Error(`Google login failed: ${response.status} ${response.statusText}`);
+        }
+        
+        throw new Error(data.error || 'Google login failed');
+      }
+      
+      const data = await response.json();
+      
+      // Save token to local storage
+      localStorage.setItem('token', data.token);
+      
+      // Set user data and auth state
+      setUser(data.user);
+      setUserId(data.user.id);
+      setIsLoggedIn(true);
+      
+      // Show success message
+      showSnackbar('Successfully signed in with Google!', 'success');
+      
+      return true; // Login successful
+      
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Google login failed');
+      showSnackbar(error instanceof Error ? error.message : 'Google login failed', 'error');
+      console.error('Google login error:', error);
+      // Sign out from Firebase if backend authentication failed
+      await signOut(auth).catch(e => console.error('Firebase sign out error:', e));
+      return false; // Login failed
     } finally {
       setIsLoading(false);
     }
@@ -346,6 +466,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Clear token from localStorage
     localStorage.removeItem('token');
     
+    // Sign out from Firebase if user was signed in with Google
+    if (user?.firebaseId) {
+      signOut(auth).catch(e => console.error('Firebase sign out error:', e));
+    }
+    
     // Reset state
     setUser(null);
     setUserId(null);
@@ -374,6 +499,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthError(null);
   };
 
+  const showSnackbar = (message: string, type: SnackbarType) => {
+    setSnackbar({ open: true, message, type });
+  };
+
+  const hideSnackbar = () => {
+    setSnackbar({ open: false, message: '', type: 'info' });
+  };
+
   const value = {
     studios,
     filteredStudios,
@@ -386,12 +519,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     currentPath,
     authError,
     isLoading,
+    snackbar,
+    showSnackbar,
+    hideSnackbar,
     
     searchStudios,
     selectStudio,
     addReview,
     createBooking,
     login,
+    loginWithGoogle,
     register,
     logout,
     navigateTo,

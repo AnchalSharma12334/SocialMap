@@ -8,6 +8,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   avatar?: string;
+  firebaseId?: string;  // New field for Firebase ID
   role: 'user' | 'admin';
   createdAt: Date;
   updatedAt: Date;
@@ -34,13 +35,21 @@ const userSchema = new Schema<IUser>({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      // Password is required only if firebaseId is not provided
+      return !this.firebaseId;
+    },
     minlength: [6, 'Password must be at least 6 characters long'],
     select: false, // Don't return password by default in queries
   },
   avatar: {
     type: String,
     default: '',
+  },
+  firebaseId: {
+    type: String,
+    sparse: true,  // Allows null values but ensures uniqueness for non-null values
+    unique: true,
   },
   role: {
     type: String,
@@ -54,7 +63,7 @@ const userSchema = new Schema<IUser>({
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   // Only hash the password if it has been modified (or is new)
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   
   try {
     // Generate salt and hash password
@@ -68,6 +77,7 @@ userSchema.pre('save', async function(next) {
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

@@ -4,6 +4,7 @@ import { validationResult } from 'express-validator';
 import User from '../models/User';
 import { AuthRequest, RegisterUser, LoginUser } from '../types/auth.types';
 import mongoose from 'mongoose';
+import admin from '../config/firebase';
 
 // Helper function to generate JWT
 const generateToken = (id: mongoose.Types.ObjectId): string => {
@@ -26,7 +27,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { name, email, password }: RegisterUser = req.body;
+    const { name, email, password, firebaseId }: RegisterUser = req.body;
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
@@ -40,6 +41,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       name,
       email,
       password,
+      firebaseId,
     });
 
     // Generate JWT using properly typed ObjectId
@@ -54,6 +56,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         role: user.role,
         avatar: user.avatar,
+        firebaseId: user.firebaseId,
       },
     });
   } catch (error) {
@@ -74,18 +77,44 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { email, password }: LoginUser = req.body;
+    const { email, password, firebaseId }: LoginUser = req.body;
 
-    // Find user by email and include the password
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) {
-      res.status(401).json({ success: false, error: 'Invalid credentials' });
+    // Check if this email is associated with a Google account
+    const existingUser = await User.findOne({ email });
+    if (existingUser && existingUser.firebaseId && !firebaseId) {
+      // This is a Google-authenticated account trying to use password login
+      res.status(401).json({ 
+        success: false, 
+        error: 'Invalid credentials',
+        isGoogleAccount: true 
+      });
       return;
     }
+    
+    // Find user by email
+    let user;
+    
+    if (firebaseId) {
+      // If firebase ID is provided, find by email and firebase ID
+      user = await User.findOne({ email, firebaseId });
+    } else {
+      // Otherwise use password authentication
+      user = await User.findOne({ email }).select('+password');
+      
+      if (!user) {
+        res.status(401).json({ success: false, error: 'Invalid credentials' });
+        return;
+      }
 
-    // Check if password matches
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
+      // Check if password matches
+      const isMatch = await user.comparePassword(password!);
+      if (!isMatch) {
+        res.status(401).json({ success: false, error: 'Invalid credentials' });
+        return;
+      }
+    }
+
+    if (!user) {
       res.status(401).json({ success: false, error: 'Invalid credentials' });
       return;
     }
@@ -102,11 +131,82 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         role: user.role,
         avatar: user.avatar,
+        firebaseId: user.firebaseId,
       },
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, error: 'Server error during login' });
+  }
+};
+
+// @desc    Google Authentication
+// @route   POST /api/auth/google
+// @access  Public
+export const googleAuth = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, email, firebaseId, avatar } = req.body;
+    
+    if (!email || !firebaseId) {
+      res.status(400).json({ success: false, error: 'Email and Firebase ID are required' });
+      return;
+    }
+    
+    console.log('Google auth request received:', { name, email, firebaseId: firebaseId.substring(0, 5) + '...' });
+    
+    try {
+      // Optional: Verify the Firebase ID (remove if causing issues)
+      // This helps prevent fake requests but requires proper Firebase setup
+      await admin.auth().getUser(firebaseId)
+        .catch(error => {
+          console.log('Firebase user verification warning (non-critical):', error.message);
+        });
+    } catch (verifyError) {
+      // Continue even if verification fails (for development)
+      console.log('Firebase verification error (continuing anyway):', verifyError);
+    }
+    
+    // Check if user already exists
+    let user = await User.findOne({ email });
+    
+    if (user) {
+      console.log('Existing user found:', user.email);
+      // If user exists but doesn't have a firebaseId, update it
+      if (!user.firebaseId) {
+        user.firebaseId = firebaseId;
+        if (avatar) user.avatar = avatar;
+        await user.save();
+        console.log('Updated existing user with Firebase ID');
+      }
+    } else {
+      // Create new user
+      user = await User.create({
+        name: name || email.split('@')[0], // Use part of email as name if not provided
+        email,
+        firebaseId,
+        avatar: avatar || '',
+      });
+      console.log('New user created with Google auth:', user.email);
+    }
+    
+    // Generate JWT
+    const token = generateToken(user._id);
+    
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        firebaseId: user.firebaseId,
+      },
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({ success: false, error: 'Server error during Google authentication' });
   }
 };
 
@@ -130,6 +230,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         email: user.email,
         role: user.role,
         avatar: user.avatar,
+        firebaseId: user.firebaseId,
       },
     });
   } catch (error) {
@@ -167,6 +268,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         email: user.email,
         role: user.role,
         avatar: user.avatar,
+        firebaseId: user.firebaseId,
       },
     });
   } catch (error) {

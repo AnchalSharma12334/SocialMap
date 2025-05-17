@@ -5,7 +5,7 @@ import { Link } from '../components/Link';
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, navigateTo, authError, isLoading, clearAuthError } = useApp();
+  const { login, loginWithGoogle, navigateTo, authError, isLoading, clearAuthError } = useApp();
   
   // Clear any auth errors when component mounts or unmounts
   useEffect(() => {
@@ -18,13 +18,32 @@ const LoginPage: React.FC = () => {
     
     try {
       // Call the login function from context that now connects to our backend API
-      await login(email, password);
+      const success = await login(email, password);
       
-      // Only navigate if there was no error
-      navigateTo('/');
+      // Only navigate if login was successful
+      if (success) {
+        navigateTo('/');
+      }
+      // If not successful, the error will be shown on this page via authError
     } catch (error) {
       // Error handling is managed in the context
       console.error('Login submission error:', error);
+      // Stay on login page to show the error
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const success = await loginWithGoogle();
+      
+      // Only navigate if login was successful
+      if (success) {
+        navigateTo('/');
+      }
+      // If not successful, the error will be shown on this page
+    } catch (error) {
+      console.error('Google login error:', error);
+      // Stay on login page to show the error
     }
   };
   
@@ -130,65 +149,36 @@ const LoginPage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                <div>
-                  <a
-                    href="#"
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                  >
-                    <span className="sr-only">Sign in with Facebook</span>
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                      <path
-                        fillRule="evenodd"
-                        d="M20 10c0-5.523-4.477-10-10-10S0 4.477 0 10c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V10h2.54V7.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V10h2.773l-.443 2.89h-2.33v6.988C16.343 19.128 20 14.991 20 10z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </a>
-                </div>
-                
-                <div>
-                  <a
-                    href="#"
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                  >
-                    <span className="sr-only">Sign in with Twitter</span>
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                      <path d="M6.29 18.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0020 3.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.073 4.073 0 01.8 7.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 010 16.407a11.616 11.616 0 006.29 1.84" />
-                    </svg>
-                  </a>
-                </div>
-                
-                <div>
-                  <a
-                    href="#"
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                  >
-                    <span className="sr-only">Sign in with Google</span>
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        fillRule="evenodd"
-                        d="M12.0003 4.75C13.7703 4.75 15.3553 5.36 16.6053 6.54L20.0303 3.11C17.9553 1.19 15.2353 0 12.0003 0C7.31033 0 3.25533 2.69 1.28833 6.61L5.27033 9.61C6.29333 6.82 8.91033 4.75 12.0003 4.75Z"
-                        fill="#EA4335"
-                      />
-                      <path
-                        fillRule="evenodd"
-                        d="M23.49 12.27C23.49 11.48 23.42 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.33 17.24 16.07 18.09L19.93 21.14C22.19 19 23.49 15.92 23.49 12.27Z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        fillRule="evenodd"
-                        d="M5.26998 14.2899C5.02998 13.5699 4.89998 12.7999 4.89998 11.9999C4.89998 11.1999 5.02998 10.4299 5.26998 9.7099L1.28798 6.7099C0.470983 8.3299 0.00698297 10.1299 0.00698297 11.9999C0.00698297 13.8699 0.470983 15.6699 1.28798 17.2899L5.26998 14.2899Z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        fillRule="evenodd"
-                        d="M12.0004 24C15.2354 24 17.9554 22.92 19.9304 21.14L16.0704 18.09C15.0004 18.82 13.6204 19.25 12.0004 19.25C8.91035 19.25 6.29335 17.18 5.27035 14.39L1.28835 17.39C3.25535 21.31 7.31035 24 12.0004 24Z"
-                        fill="#34A853"
-                      />
-                    </svg>
-                  </a>
-                </div>
+              <div className="mt-6">
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                  className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF5A5F] disabled:opacity-50"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fillRule="evenodd"
+                      d="M12.0003 4.75C13.7703 4.75 15.3553 5.36 16.6053 6.54L20.0303 3.11C17.9553 1.19 15.2353 0 12.0003 0C7.31033 0 3.25533 2.69 1.28833 6.61L5.27033 9.61C6.29333 6.82 8.91033 4.75 12.0003 4.75Z"
+                      fill="#EA4335"
+                    />
+                    <path
+                      fillRule="evenodd"
+                      d="M23.49 12.27C23.49 11.48 23.42 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.33 17.24 16.07 18.09L19.93 21.14C22.19 19 23.49 15.92 23.49 12.27Z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      fillRule="evenodd"
+                      d="M5.26998 14.2899C5.02998 13.5699 4.89998 12.7999 4.89998 11.9999C4.89998 11.1999 5.02998 10.4299 5.26998 9.7099L1.28798 6.7099C0.470983 8.3299 0.00698297 10.1299 0.00698297 11.9999C0.00698297 13.8699 0.470983 15.6699 1.28798 17.2899L5.26998 14.2899Z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      fillRule="evenodd"
+                      d="M12.0004 24C15.2354 24 17.9554 22.92 19.9304 21.14L16.0704 18.09C15.0004 18.82 13.6204 19.25 12.0004 19.25C8.91035 19.25 6.29335 17.18 5.27035 14.39L1.28835 17.39C3.25535 21.31 7.31035 24 12.0004 24Z"
+                      fill="#34A853"
+                    />
+                  </svg>
+                  Sign in with Google
+                </button>
               </div>
             </div>
           </div>

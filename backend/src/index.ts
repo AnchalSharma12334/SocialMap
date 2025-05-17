@@ -13,6 +13,12 @@ connectDB();
 // Initialize express app
 const app = express();
 
+// Debug middleware to log all incoming requests
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -41,6 +47,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 // Handle 404 errors - changed from '*' to a middleware without path
 app.use((req: Request, res: Response) => {
+  console.log(`[404] Route not found: ${req.method} ${req.url}`);
   res.status(404).json({
     success: false,
     error: 'Resource not found',
@@ -48,7 +55,8 @@ app.use((req: Request, res: Response) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`Routes setup: /api/auth/* routes are configured`);
 });

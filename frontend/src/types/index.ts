@@ -50,6 +50,7 @@ export interface User {
   avatar?: string;
   role: 'user' | 'admin';
   phone?: string;
+  firebaseId?: string;
   bookings?: Booking[];
   favorites?: string[];
 }
