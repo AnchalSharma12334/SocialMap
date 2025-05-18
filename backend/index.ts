@@ -5,6 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './src/config/db';
 import routes from './src/routes';
+import cashfreeRoutes from './src/routes/cashfree';
 
 // Load environment variables
 dotenv.config();
@@ -28,7 +29,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use('/api', routes);
-
+//cashfree
+app.use('/api/cashfree', cashfreeRoutes);
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({

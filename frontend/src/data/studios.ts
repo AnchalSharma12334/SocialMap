@@ -12,6 +12,7 @@ export const studios: Studio[] = [
       longitude: 77.2167
     },
     price: 800,
+    currency: '₹',
     rating: 4.8,
     reviewCount: 124,
     amenities: ['Soundproofing', 'Microphones', 'Headphones', 'Mixer', 'Recording Software', 'Coffee Machine'],
@@ -33,6 +34,7 @@ export const studios: Studio[] = [
       longitude: 77.2088
     },
     price: 1200,
+    currency: '₹',
     rating: 4.6,
     reviewCount: 87,
     amenities: ['Full Wall Mirrors', 'Professional Sound System', 'Changing Rooms', 'Air Conditioning', 'Water Dispenser', 'Waiting Area'],
@@ -54,6 +56,7 @@ export const studios: Studio[] = [
       longitude: 77.1919
     },
     price: 1500,
+    currency: '₹',
     rating: 4.9,
     reviewCount: 156,
     amenities: ['Professional Lighting', 'Multiple Backdrops', 'Props', 'Makeup Area', 'Changing Room', 'High-Speed WiFi'],
@@ -75,6 +78,7 @@ export const studios: Studio[] = [
       longitude: 77.2373
     },
     price: 2000,
+    currency: '₹',
     rating: 4.7,
     reviewCount: 93,
     amenities: ['Green Screen', 'Professional Lighting', 'Camera Equipment', 'Editing Stations', 'Sound Booth', 'Rest Area'],
@@ -96,6 +100,7 @@ export const studios: Studio[] = [
       longitude: 77.1569
     },
     price: 1800,
+    currency: '₹',
     rating: 4.5,
     reviewCount: 78,
     amenities: ['Recording Equipment', 'Soundproofing', 'Musical Instruments', 'Mixing Console', 'Control Room', 'Lounge Area'],
@@ -117,6 +122,7 @@ export const studios: Studio[] = [
       longitude: 77.2467
     },
     price: 1400,
+    currency: '₹',
     rating: 4.4,
     reviewCount: 62,
     amenities: ['Flexible Space', 'Basic Lighting', 'Audio Equipment', 'Tables & Chairs', 'Projector', 'Whiteboard'],

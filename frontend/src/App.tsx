@@ -12,6 +12,7 @@ import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import Snackbar from './components/Snackbar';
 import Bookings from './pages/Bookings';
+import PaymentStatusPage from '../src/pages/PaymentStatusPage'; // ✅ Import added
 
 const Router: React.FC = () => {
   const { currentPath, snackbar, hideSnackbar } = useApp();
@@ -36,7 +37,9 @@ const Router: React.FC = () => {
       return <ContactPage />;
     } else if (currentPath === '/bookings') {
       return <Bookings />;
-    }else {
+    } else if (currentPath.startsWith('/payment-status')) {  // ✅ Route added
+      return <PaymentStatusPage />;
+    } else {
       // Default to home page if path is not recognized
       return <HomePage />;
     }
@@ -60,7 +63,6 @@ const Router: React.FC = () => {
 };
 
 function App() {
-  // Update page title
   useEffect(() => {
     document.title = 'SocialMap - Book Studios in Delhi';
   }, []);

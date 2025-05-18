@@ -5,6 +5,7 @@ import BookingForm from '../components/BookingForm';
 import ReviewSection from '../components/ReviewSection';
 import MapView from '../components/MapView';
 import { Link } from '../components/Link';
+import { BookingStatus } from '../types';
 
 const StudioDetailPage: React.FC = () => {
   const { selectedStudio, reviews, navigateTo, addReview, createBooking } = useApp();
@@ -54,7 +55,7 @@ const StudioDetailPage: React.FC = () => {
       startTime: bookingData.startTime,
       endTime: bookingData.endTime,
       totalPrice,
-      status: 'pending'
+      status: BookingStatus.CONFIRMED
     });
     
     // Navigate to a confirmation page or show a success modal

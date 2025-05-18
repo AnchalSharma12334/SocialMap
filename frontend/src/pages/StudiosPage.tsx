@@ -35,7 +35,14 @@ const StudiosPage: React.FC = () => {
       searchStudios('', { type: typeParam as StudioType });
     }
   }, []);
-  
+
+  //  sync showMap state with viewMode changes
+  useEffect(() => {
+    if (viewMode === 'map' && !showMap) {
+      setShowMap(true);
+    }
+  }, [viewMode, showMap]);
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-[#0F172A] py-10 px-4 sm:px-6 lg:px-8">
@@ -94,8 +101,6 @@ const StudiosPage: React.FC = () => {
                 <MapView studios={filteredStudios} />
               </div>
             )}
-            
-            {viewMode === 'map' && !showMap && setShowMap(true)}
             
             {viewMode !== 'map' && (
               <div className={`grid ${

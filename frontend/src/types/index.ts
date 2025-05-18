@@ -9,6 +9,7 @@ export interface Studio {
     longitude: number;
   };
   price: number;
+  currency: string;
   rating: number;
   reviewCount: number;
   amenities: string[];
