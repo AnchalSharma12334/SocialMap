@@ -1,8 +1,10 @@
+// api/index.ts
+
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './config/db';
-import routes from './routes';
+import { connectDB } from '../src/config/db';
+import routes from '../src/routes';
 
 // Load environment variables
 dotenv.config();
@@ -24,10 +26,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Set API routes
+// API Routes
 app.use('/api', routes);
 
-// Health check route
+// Health check
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'success',
@@ -35,7 +37,12 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Error handling middleware
+// Root route
+app.get('/', (req: Request, res: Response) => {
+  res.send('Hello from Express on Vercel!');
+});
+
+// Error handling
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({
@@ -45,7 +52,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Handle 404 errors - changed from '*' to a middleware without path
+// 404 handler
 app.use((req: Request, res: Response) => {
   console.log(`[404] Route not found: ${req.method} ${req.url}`);
   res.status(404).json({
@@ -54,9 +61,4 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`Routes setup: /api/auth/* routes are configured`);
-});
+export default app;
