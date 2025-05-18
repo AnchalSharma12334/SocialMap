@@ -3,8 +3,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from '../../src/config/db';
-import routes from '../../src/routes';
+import { connectDB } from './src/config/db';
+import routes from './src/routes';
 
 // Load environment variables
 dotenv.config();
