@@ -9,7 +9,7 @@ declare global {
 const Payment: React.FC = () => {
   const initiatePayment = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/cashfree/create-order', {
+      const response = await fetch('https://social-map-eew7.vercel.app/api/create-order',{
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -184,7 +184,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthError(null);
     
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch(`https://social-map-eew7.vercel.app/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthError(null);
     
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`https://social-map-eew7.vercel.app/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -302,7 +302,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log('Request URL:', `${API_URL}/auth/google`);
       
       // Send to backend to create/update user and get JWT
-      const response = await fetch(`${API_URL}/auth/google`, {
+      const response = await fetch(`https://social-map-eew7.vercel.app/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -364,7 +364,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await fetch(`https://social-map-eew7.vercel.app/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -402,7 +402,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthError(null);
     
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await fetch(`https://social-map-eew7.vercel.app/auth/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -440,7 +440,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthError(null);
     
     try {
-      const response = await fetch(`${API_URL}/auth/password`, {
+      const response = await fetch(`https://social-map-eew7.vercel.app/auth/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -37,7 +37,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const handlePayment = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/create-order', {
+      const res = await fetch('https://social-map-eew7.vercel.app/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
