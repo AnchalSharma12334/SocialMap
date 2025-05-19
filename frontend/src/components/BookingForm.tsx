@@ -47,12 +47,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
 
   const calculateHours = () => {
     if (!startTime || !endTime) return 0;
-    
     const start = new Date(`2023-01-01T${startTime}`);
     const end = new Date(`2023-01-01T${endTime}`);
-    
     if (end <= start) return 0;
-    
     const diffMs = end.getTime() - start.getTime();
     return diffMs / (1000 * 60 * 60);
   };
@@ -67,25 +64,25 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
     const selectedDate = new Date(date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     if (!date) {
       newErrors.date = 'Please select a date';
     } else if (selectedDate < today) {
       newErrors.date = 'Please select a future date';
     }
-    
+
     if (!startTime) {
       newErrors.startTime = 'Please select a start time';
     }
-    
+
     if (!endTime) {
       newErrors.endTime = 'Please select an end time';
     }
-    
+
     if (startTime && endTime) {
       const start = new Date(`${date}T${startTime}`);
       const end = new Date(`${date}T${endTime}`);
-      
+
       if (end <= start) {
         newErrors.endTime = 'End time must be after start time';
       }
@@ -95,22 +92,20 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
         newErrors.endTime = 'Maximum booking duration is 8 hours';
       }
     }
-    
+
     if (guests < 1) {
       newErrors.guests = 'At least one guest is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+
+    if (!validateForm()) return;
+
     const bookingData = {
       date,
       startTime,
@@ -119,36 +114,43 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
       totalAmount: calculateTotalPrice(),
       currency: studio.currency
     };
-    
-    setCurrentBooking(bookingData);
-    setShowPaymentModal(true);
-  };
 
-  const handlePaymentSuccess = async () => {
     try {
       setIsSubmitting(true);
-      await onBookingSubmit({
+
+      const res = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: bookingData.totalAmount,
+          currency: bookingData.currency
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to create order');
+      const { orderId } = await res.json();
+
+      setCurrentBooking({ ...bookingData, orderId });
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error(error);
+      setErrors({ submit: 'Failed to initialize payment. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+    setShowConfirmationModal(true);
+
+    if (currentBooking) {
+      onBookingSubmit({
         date: currentBooking.date,
         startTime: currentBooking.startTime,
         endTime: currentBooking.endTime,
         guests: currentBooking.guests
       });
-      
-      setShowPaymentModal(false);
-      setShowConfirmationModal(true);
-      
-      // Clear form
-      setDate('');
-      setStartTime('09:00');
-      setEndTime('10:00');
-      setGuests(1);
-      setErrors({});
-    } catch (error) {
-      setErrors({
-        submit: 'Failed to submit booking. Please try again.'
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -157,6 +159,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
   return (
     <>
       <div className="bg-white rounded-lg border border-gray-200 shadow-md p-6">
+        {/* Top section with price and rating */}
         <div className="flex justify-between items-center mb-4">
           <div>
             <span className="text-2xl font-bold">{studio.currency}{studio.price}</span>
@@ -171,12 +174,12 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
             <span className="text-sm text-gray-600">120 reviews</span>
           </div>
         </div>
-        
+
+        {/* Booking form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Date */}
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Calendar size={18} className="text-gray-400" />
@@ -194,12 +197,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
             </div>
             {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
           </div>
-          
+
+          {/* Time pickers */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time
-              </label>
+              <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Clock size={18} className="text-gray-400" />
@@ -209,30 +211,27 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
                   name="startTime"
                   value={startTime}
                   onChange={(e) => {
-                    setStartTime(e.target.value);
-                    // Automatically set end time to 1 hour after start time
-                    const startHour = parseInt(e.target.value.split(':')[0]);
-                    const startMinute = e.target.value.split(':')[1];
-                    const endHour = (startHour + 1).toString().padStart(2, '0');
-                    setEndTime(`${endHour}:${startMinute}`);
+                    const selected = e.target.value;
+                    setStartTime(selected);
+                    const [hour, minute] = selected.split(':').map(Number);
+                    const newEndHour = hour + 1;
+                    if (newEndHour < 22) {
+                      setEndTime(`${newEndHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+                    }
                   }}
                   className={`block w-full pl-10 pr-3 py-2 border ${errors.startTime ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-[#FF5A5F] focus:border-[#FF5A5F]`}
                   required
                 >
                   {timeOptions.map((time) => (
-                    <option key={`start-${time}`} value={time}>
-                      {time}
-                    </option>
+                    <option key={`start-${time}`} value={time}>{time}</option>
                   ))}
                 </select>
               </div>
               {errors.startTime && <p className="mt-1 text-sm text-red-600">{errors.startTime}</p>}
             </div>
-            
+
             <div>
-              <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
-                End Time
-              </label>
+              <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Clock size={18} className="text-gray-400" />
@@ -246,20 +245,17 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
                   required
                 >
                   {timeOptions.map((time) => (
-                    <option key={`end-${time}`} value={time}>
-                      {time}
-                    </option>
+                    <option key={`end-${time}`} value={time}>{time}</option>
                   ))}
                 </select>
               </div>
               {errors.endTime && <p className="mt-1 text-sm text-red-600">{errors.endTime}</p>}
             </div>
           </div>
-          
+
+          {/* Guests */}
           <div>
-            <label htmlFor="guests" className="block text-sm font-medium text-gray-700 mb-1">
-              Number of Guests
-            </label>
+            <label htmlFor="guests" className="block text-sm font-medium text-gray-700 mb-1">Number of Guests</label>
             <select
               id="guests"
               name="guests"
@@ -267,15 +263,14 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
               onChange={(e) => setGuests(parseInt(e.target.value))}
               className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#FF5A5F] focus:border-[#FF5A5F]"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                <option key={num} value={num}>
-                  {num} {num === 1 ? 'guest' : 'guests'}
-                </option>
+              {[...Array(10)].map((_, i) => (
+                <option key={i + 1} value={i + 1}>{i + 1} {i === 0 ? 'guest' : 'guests'}</option>
               ))}
             </select>
             {errors.guests && <p className="mt-1 text-sm text-red-600">{errors.guests}</p>}
           </div>
-          
+
+          {/* Pricing */}
           <div className="border-t border-gray-200 pt-4 mt-4">
             <div className="flex justify-between mb-2">
               <span>{studio.currency}{studio.price} × {calculateHours()} hours</span>
@@ -286,13 +281,14 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
               <span>{studio.currency}{calculateTotalPrice().toFixed(2)}</span>
             </div>
           </div>
-          
+
+          {/* Submit button and error message */}
           {errors.submit && (
             <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
               {errors.submit}
             </div>
           )}
-          
+
           <button
             type="submit"
             disabled={isSubmitting}
@@ -327,4 +323,4 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
   );
 };
 
-export default BookingForm; 
+export default BookingForm;

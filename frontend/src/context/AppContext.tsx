@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Studio, StudioType, Review, Booking, User } from '../types';
+import { Studio, StudioType, Review, Booking, User, BookingStatus } from '../types';
 import { studios, getStudioById, getStudiosByFilter } from '../data/studios';
 import { auth, googleProvider } from '../config/firebase';
 import { signInWithPopup, UserCredential, signOut } from 'firebase/auth';
@@ -36,6 +36,7 @@ interface AppContextType {
   selectStudio: (id: string) => void;
   addReview: (review: Omit<Review, 'id' | 'date'>) => void;
   createBooking: (booking: Omit<Booking, 'id'>) => void;
+  updateBookingStatus: (bookingId: string, status: BookingStatus) => void;
   login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -507,6 +508,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSnackbar({ open: false, message: '', type: 'info' });
   };
 
+  const updateBookingStatus = (bookingId: string, status: BookingStatus) => {
+    // Update booking status locally
+    setBookings(prevBookings => 
+      prevBookings.map(booking => 
+        booking.id === bookingId 
+          ? { ...booking, status } 
+          : booking
+      )
+    );
+    
+    // In a real application, you would also make an API call here
+    // to update the booking status on the server
+    // Example:
+    // const token = localStorage.getItem('token');
+    // if (token) {
+    //   fetch(`${API_URL}/bookings/${bookingId}`, {
+    //     method: 'PATCH',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Authorization': `Bearer ${token}`,
+    //     },
+    //     body: JSON.stringify({ status }),
+    //   }).catch(error => {
+    //     console.error('Error updating booking status:', error);
+    //   });
+    // }
+  };
+
   const value = {
     studios,
     filteredStudios,
@@ -527,6 +556,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     selectStudio,
     addReview,
     createBooking,
+    updateBookingStatus,
     login,
     loginWithGoogle,
     register,

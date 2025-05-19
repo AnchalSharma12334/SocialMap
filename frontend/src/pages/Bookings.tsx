@@ -29,71 +29,72 @@ const StatusIndicator: React.FC<{ status: BookingStatus }> = ({ status }) => {
   );
 };
 
-const BookingCard: React.FC<{ booking: Booking; studio: Studio | undefined }> = ({ booking, studio }) => {
-  if (!studio) {
-    return null;
-  }
+const BookingCard: React.FC<{
+  booking: Booking;
+  studio: Studio | undefined;
+  onPayNow: (bookingId: string) => void;
+  onCancel: (bookingId: string) => void;
+  onWriteReview: (bookingId: string) => void;
+}> = ({ booking, studio, onPayNow, onCancel, onWriteReview }) => {
+  if (!studio) return null;
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative">
-        <img
-          src={studio.images[0]}
-          alt={studio.name}
-          className="w-full h-40 object-cover"
-        />
-        <div className="absolute top-0 right-0 m-2">
-          <StatusIndicator status={booking.status} />
-        </div>
-      </div>
-      
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{studio.name}</h3>
-        
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center text-sm text-gray-600">
-            <MapPin size={16} className="mr-2" />
-            <span>{studio.address}</span>
-          </div>
-          
-          <div className="flex items-center text-sm text-gray-600">
-            <Calendar size={16} className="mr-2" />
-            <span>{new Date(booking.date).toLocaleDateString('en-US', { 
-              weekday: 'short', 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric' 
-            })}</span>
-          </div>
-          
-          <div className="flex items-center text-sm text-gray-600">
-            <Clock size={16} className="mr-2" />
-            <span>{booking.startTime} - {booking.endTime}</span>
-          </div>
+        <h2 className="text-lg font-semibold text-gray-900">{studio.name}</h2>
+
+        {/* Location with lat, lon */}
+        <div className="flex items-center mt-1 text-gray-600">
+          <MapPin size={16} />
+          <p className="ml-1">
+            Lat: {studio.location.latitude}, Lon: {studio.location.longitude}
+          </p>
         </div>
-        
+
+        {/* Date */}
+        <div className="flex items-center mt-1 text-gray-600">
+          <Calendar size={16} />
+          <span className="ml-1">{booking.date}</span>
+        </div>
+
+        {/* You can add time or slot here if your Booking type has a field */}
+
+        <StatusIndicator status={booking.status} />
+
         <div className="flex justify-between items-center mt-4">
           <span className="font-bold text-gray-900">₹{booking.totalPrice}</span>
-          
+
           {booking.status === BookingStatus.PENDING && (
             <div className="space-x-2">
-              <button className="px-3 py-1 bg-green-500 text-white rounded-md text-sm hover:bg-green-600 transition-colors">
+              <button
+                onClick={() => onPayNow(booking.id)}
+                className="px-3 py-1 bg-green-500 text-white rounded-md text-sm hover:bg-green-600 transition-colors"
+              >
                 Pay Now
               </button>
-              <button className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors">
+              <button
+                onClick={() => onCancel(booking.id)}
+                className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors"
+              >
                 Cancel
               </button>
             </div>
           )}
-          
+
           {booking.status === BookingStatus.CONFIRMED && (
-            <button className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors">
+            <button
+              onClick={() => onCancel(booking.id)}
+              className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors"
+            >
               Cancel
             </button>
           )}
-          
+
           {booking.status === BookingStatus.COMPLETED && (
-            <button className="px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 transition-colors">
+            <button
+              onClick={() => onWriteReview(booking.id)}
+              className="px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 transition-colors"
+            >
               Write Review
             </button>
           )}
@@ -102,6 +103,7 @@ const BookingCard: React.FC<{ booking: Booking; studio: Studio | undefined }> = 
     </div>
   );
 };
+
 
 const BookingsPage: React.FC = () => {
   const { bookings, user, studios, isLoggedIn, navigateTo } = useApp();
@@ -128,11 +130,28 @@ const BookingsPage: React.FC = () => {
     return studios.find(studio => studio.id === studioId);
   };
 
+  const handlePayNow = (bookingId: string) => {
+    // Implement payment logic, e.g., redirect to payment page or open payment modal
+    console.log('Pay Now clicked for booking', bookingId);
+    // Example: navigateTo(`/payment?bookingId=${bookingId}`);
+  };
+
+  const handleCancel = (bookingId: string) => {
+    // Implement cancellation logic, e.g., API call to cancel booking
+    console.log('Cancel clicked for booking', bookingId);
+    // You can update state or refetch bookings after cancel
+  };
+
+  const handleWriteReview = (bookingId: string) => {
+    // Implement write review logic, e.g., navigate to review form
+    console.log('Write Review clicked for booking', bookingId);
+    // Example: navigateTo(`/review/${bookingId}`);
+  };
+
   if (!isLoggedIn) {
     return null; // Will redirect in useEffect
   }
 
-  // If there are no bookings
   if (bookings.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -221,9 +240,13 @@ const BookingsPage: React.FC = () => {
             key={booking.id} 
             booking={booking} 
             studio={getStudioById(booking.studioId)} 
+            onPayNow={handlePayNow}        
+            onCancel={handleCancel}        
+            onWriteReview={handleWriteReview} 
           />
         ))}
       </div>
+
     </div>
   );
 };

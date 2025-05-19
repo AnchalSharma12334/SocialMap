@@ -25,7 +25,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const script = document.createElement('script');
-      script.src = "https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js";
+      script.src = "https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js"; // switch to production when ready
       script.async = true;
       document.body.appendChild(script);
 
@@ -37,16 +37,23 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const handlePayment = async () => {
     try {
-      // In a real application, you would:
-      // 1. Call your backend to create a Cashfree order
-      // 2. Get the order token from your backend
-      // 3. Initialize Cashfree checkout with the order token
-      
-      const orderToken = "DUMMY_TOKEN"; // This would come from your backend
-
-      const cashfree = new window.Cashfree({
-        mode: "sandbox" // or "production"
+      const res = await fetch('http://localhost:5000/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          currency,
+          customerId: 'customer_001' // replace with actual user/customer ID
+        })
       });
+
+      const { orderToken } = await res.json();
+
+      if (!orderToken) {
+        throw new Error('Failed to get order token');
+      }
+
+      const cashfree = new window.Cashfree({ mode: "sandbox" }); // change to "production" when live
 
       const paymentConfig = {
         orderToken,
@@ -68,11 +75,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         },
       };
 
-      // For demo purposes, we'll simulate a successful payment
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      onSuccess();
+      cashfree.checkout(paymentConfig);
+
     } catch (error) {
       console.error('Payment failed:', error);
+      alert('Something went wrong while initiating payment.');
     }
   };
 
@@ -90,21 +97,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <X size={24} />
           </button>
         </div>
-        
+
         <div className="mb-6">
           <div className="flex justify-between mb-2">
             <span className="text-gray-600">Total Amount:</span>
             <span className="font-semibold">{currency}{amount.toFixed(2)}</span>
           </div>
-          
+
           <div className="bg-gray-50 p-4 rounded-md mb-4">
             <p className="text-sm text-gray-600">
-              This is a demo payment page. In a real application, you would see the
-              Cashfree payment form here.
+              You will be redirected to complete the payment via Cashfree.
             </p>
           </div>
         </div>
-        
+
         <button
           onClick={handlePayment}
           className="w-full bg-[#FF5A5F] text-white py-3 px-4 rounded-md hover:bg-[#FF4045] transition duration-300"
