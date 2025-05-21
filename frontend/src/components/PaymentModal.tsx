@@ -53,7 +53,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error('Failed to get order token');
       }
 
-      const cashfree = new window.Cashfree({ mode: "sandbox" }); // change to "production" when live
+      const cashfree = new window.Cashfree({ mode: "production" }); // change to "production" when live
 
       const paymentConfig = {
         orderToken,

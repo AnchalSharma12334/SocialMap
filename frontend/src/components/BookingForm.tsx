@@ -118,7 +118,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ studio, onBookingSubmit }) =>
     try {
       setIsSubmitting(true);
 
-      const res = await fetch('/api/create-order', {
+      const res = await fetch('https://social-map-theta.vercel.app/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
