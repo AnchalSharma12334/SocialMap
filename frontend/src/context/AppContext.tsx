@@ -302,7 +302,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log('Request URL:', `${API_URL}/auth/google`);
       
       // Send to backend to create/update user and get JWT
-      const response = await fetch(`https://social-map-eew7.vercel.app/auth/google`, {
+      const response = await fetch(`https://social-map-2rio.vercel.app//auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
