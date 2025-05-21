@@ -15,7 +15,7 @@ router.post('/create-order', async (req: Request, res: Response) => {
       order_currency: 'INR',
       customer_details,
       order_meta: {
-        return_url: 'https://social-map-gamma.vercel.app/payment-status?order_id={order_id}',
+        return_url: 'https://social-map-2rio.vercel.app/payment-status?order_id={order_id}',
       },
     };
 

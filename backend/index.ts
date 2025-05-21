@@ -15,6 +15,7 @@ connectDB();
 
 // Initialize express app
 const app = express();
+app.use('/api', cashfreeRoutes); 
 
 // Debug middleware to log all incoming requests
 app.use((req: Request, res: Response, next: NextFunction) => {
