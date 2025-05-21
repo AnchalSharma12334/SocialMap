@@ -184,7 +184,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthError(null);
     
     try {
-      const response = await fetch(`https://social-map-eew7.vercel.app/auth/register`, {
+      const response = await fetch(`https://social-map-2rio.vercel.app/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAuthError(null);
     
     try {
-      const response = await fetch(`https://social-map-eew7.vercel.app/auth/login`, {
+      const response = await fetch(`https://social-map-2rio.vercel.app/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
